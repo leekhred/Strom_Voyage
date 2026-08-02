@@ -1,0 +1,106 @@
+var BoatBuoyancy = pc.createScript('BoatBuoyancy');
+//규칙 다른 파일의 entity나 component를 불러올 때 변수 이름은 소문자로 할 것
+
+BoatBuoyancy.prototype.initialize = function(){
+    //Ocean Entity 찾기
+    this.ocean = this.app.root.findByName("Ocean");
+
+    //OceanManager Script 가져오기
+    this.oceanManager = this.ocean.script.OceanManager;
+
+    console.log("Water Level: " , this.oceanManager.waterLevel);
+
+    //floatpoints들 가져오기
+    this.floatPoints = [
+        this.entity.findByName("Float_FrontLeft"),
+        this.entity.findByName("Float_FrontCenter"),
+        this.entity.findByName("Float_FrontRight"),
+
+        this.entity.findByName("Float_MiddleLeft"),
+        this.entity.findByName("Float_Center"),
+        this.entity.findByName("Float_MiddleRight"),
+
+        this.entity.findByName("Float_BackLeft"),
+        this.entity.findByName("Float_BackCenter"),
+        this.entity.findByName("Float_BackRight")
+
+    ];
+    console.log(this.floatPoints);
+
+};
+
+BoatBuoyancy.attributes.add('buoyancyStrength',{
+    type: 'number',
+    default: 200
+
+});
+
+
+
+BoatBuoyancy.prototype.update = function(dt){
+
+    var rb = this.entity.rigidbody;
+    //물 높이
+    var waterlevel = this.oceanManager.waterLevel;
+    //배의 중심 위치
+    var centerofMass = this.entity.getPosition();
+    console.log("boatposition: " , centerofMass)
+    //배가 지금 얼마나 빠르게 회전하고 있는지(각속도)
+    var angularVel = rb.angularVelocity;
+    //배가 지금 얼마나 빠르게 이동하고 있는지
+    var linearVel = rb.linearVelocity;
+
+    
+
+    for(var i = 0; i < this.floatPoints.length; i++){
+        //현재 배 포인트 위치
+        var point = this.floatPoints[i];
+        //포인트 y위치
+        var pointPos = point.getPosition();
+        //깊이
+        var depth = waterlevel - pointPos.y;
+        
+        console.log("pointPos : " , pointPos);
+        console.log("depth : " , depth)
+        if(depth > 0){
+             var buoyancyForce = depth * this.buoyancyStrength;
+            
+            
+            console.log("hello");
+            /*
+             this.entity.rigidbody.applyForce(
+                new pc.Vec3(0, force , 0),
+                point.getPosition()
+             );*/
+            
+            //상대위치: 포인트위치 - 중심
+            var relativePos = pointPos.clone().sub(centerofMass);
+            //선속도: 상대위치에서의 회전속도 (각속도활용)
+            var rotationalVelocity = new pc.Vec3().cross(angularVel, relativePos);
+            //각 포인트가 가지는 실제 속도 = 위 아래로 가는 속도 + 선속도
+            var pointVelocityY = linearVel.y + rotationalVelocity.y;
+            //반대로 힘을 뻗어 감쇠
+            var dampingForce = -pointVelocityY * this.dampingStrength;
+            var totalForce = buoyancyForce + dampingForce;
+            totalForce = Math.min(Math.max(totalForce , -this.maxForce), this.maxForce);
+            if(!isFinite(totalForce)){
+                console.warn("Invalid force: " , totalForce);
+                continue;
+            }
+
+            rb.applyForce(
+                new pc.Vec3(0, totalForce , 0),
+                pointPos
+            );
+
+           
+
+            //update 프레임은
+       }
+        
+
+    }
+
+
+};
+
