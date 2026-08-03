@@ -16,9 +16,6 @@ BoatBuoyancy.prototype.initialize = function(){
         this.entity.findByName("Float_FrontCenter"),
         this.entity.findByName("Float_FrontRight"),
 
-        this.entity.findByName("Float_MiddleLeft"),
-        this.entity.findByName("Float_Center"),
-        this.entity.findByName("Float_MiddleRight"),
 
         this.entity.findByName("Float_BackLeft"),
         this.entity.findByName("Float_BackCenter"),
@@ -35,7 +32,10 @@ BoatBuoyancy.attributes.add('buoyancyStrength',{
 
 });
 
-
+BoatBuoyancy.attributes.add('waterDrag',{
+    type: 'number',
+    default : 4
+})
 
 BoatBuoyancy.prototype.update = function(dt){
     /*
@@ -86,7 +86,9 @@ BoatBuoyancy.prototype.update = function(dt){
         
 
     }
-
+    //물저항
+    var drag = this.entity.rigidbody.linearVelocity.clone();
+    drag.scale(-this.waterDrag);
+    this.entity.rigidbody.applyForce(drag); 
 
 };
-
